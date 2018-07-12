@@ -107,23 +107,35 @@ class KNearestNeighbor(object):
         num_test = X.shape[0]
         num_train = self.X_train.shape[0]
         dists = np.zeros((num_test, num_train))
-        #########################################################################
-        # TODO:                                                                 #
-        # Compute the l2 distance between all test points and all training      #
-        # points without using any explicit loops, and store the result in      #
-        # dists.                                                                #
-        #                                                                       #
-        # You should implement this function using only basic array operations; #
-        # in particular you should not use functions from scipy.                #
-        #                                                                       #
-        # HINT: Try to formulate the l2 distance using matrix multiplication    #
-        #       and two broadcast sums.                                         #
-        #########################################################################
-        pass
-        #########################################################################
-        #                         END OF YOUR CODE                              #
-        #########################################################################
+        # 无参数表示全部相加，axis＝0表示按列相加，axis＝1表示按行的方向相加
+        # 这里就是将矩阵压缩成一维，num_train列的矩阵，得到a^2的累加
+        dists += np.sum(self.X_train ** 2, axis=1).reshape(1, num_train)
+        # 同理得到b^2的累加
+        dists += np.sum(X ** 2, axis=1).reshape(num_test, 1)  # reshape for broadcasting
+        # 这里减去2ab的累加
+        dists -= 2 * np.dot(X, self.X_train.T)  # .T表示转置
+        # 开方后得到结果
+        dists = np.sqrt(dists)
+        # 原理是（a-b）^2=a^2+b^2-2ab
         return dists
+
+        '''
+        >>> import numpy as np
+        >>> a=np.sum([[0,1,2],[2,1,3]])
+        >>> a
+        9
+        >>> a.shape()
+        >>> a=np.sum([[0,1,2],[2,1,3]],axis=0)
+        >>> a
+        array([2, 2, 5])
+        >>> a.shape
+        (3,)
+        >>> a=np.sum([[0,1,2],[2,1,3]],axis=1)
+        >>> a
+        array([3, 6])
+        >>> a.shape
+        (2,)
+        '''
 
     def predict_labels(self, dists, k):
         """
