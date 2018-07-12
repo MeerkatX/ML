@@ -86,15 +86,15 @@ class KNearestNeighbor(object):
         num_train = self.X_train.shape[0]
         dists = np.zeros((num_test, num_train))
         for i in range(num_test):
-            #######################################################################
-            # TODO:                                                               #
-            # Compute the l2 distance between the ith test point and all training #
-            # points, and store the result in dists[i, :].                        #
-            #######################################################################
-            pass
-            #######################################################################
-            #                         END OF YOUR CODE                            #
-            #######################################################################
+            # 先将测试矩阵的每一行扩展(复制)为特征数×训练数据的数量的矩阵
+            # 之后减去训练矩阵
+            diffMat = np.tile(X[i], (num_train, 1)) - self.X_train
+            # 将训练矩阵平方
+            sq = diffMat ** 2
+            # 相加
+            sqDis = sq.sum(axis=1)
+            # 再开方，获得一个测试样本的欧氏距离
+            dists[i, :] = sqDis ** 0.5
         return dists
 
     def compute_distances_no_loops(self, X):

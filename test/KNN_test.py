@@ -70,7 +70,9 @@ classifier.train(X_train, y_train)
 # compute_distances_two_loops.
 
 # Test your implementation:
-dists = classifier.compute_distances_two_loops(X_test)
+dists = classifier.compute_distances_one_loop(X_test)
+# dists=classifier.compute_distances_two_loops(X_test)
+# dists=classifier.compute_distances_no_loops(X_test)
 print(dists.shape)
 
 # Now implement the function predict_labels and run the code below:
