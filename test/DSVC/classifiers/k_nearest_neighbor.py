@@ -64,6 +64,12 @@ class KNearestNeighbor(object):
         num_test = X.shape[0]
         num_train = self.X_train.shape[0]
         dists = np.zeros((num_test, num_train))
+        #####################################################################
+        # TODO:                                                             #
+        # Compute the l2 distance between the ith test point and the jth    #
+        # training point, and store the result in dists[i, j]. You should   #
+        # not use a loop over dimension.                                    #
+        #####################################################################
         for i in range(num_test):
             for j in range(num_train):
                 # 三种不同的方法求 欧氏距离
@@ -73,6 +79,9 @@ class KNearestNeighbor(object):
                 # dists[i,j]=np.sqrt(np.sum((self.X_train[j]-X[i])**2))
                 # 利用矩阵点乘自身
                 # dists[i,j]=np.sqrt(np.dot(self.X_train[j]-X[i],self.X_train[j]-X[i]))
+        #####################################################################
+        #                       END OF YOUR CODE                            #
+        #####################################################################
         return dists
 
     def compute_distances_one_loop(self, X):
@@ -86,6 +95,11 @@ class KNearestNeighbor(object):
         num_train = self.X_train.shape[0]
         dists = np.zeros((num_test, num_train))
         for i in range(num_test):
+            #######################################################################
+            # TODO:                                                               #
+            # Compute the l2 distance between the ith test point and all training #
+            # points, and store the result in dists[i, :].                        #
+            #######################################################################
             # 先将测试矩阵的每一行扩展(复制)为特征数×训练数据的数量的矩阵
             # 之后减去训练矩阵
             diffMat = np.tile(X[i], (num_train, 1)) - self.X_train
@@ -95,6 +109,9 @@ class KNearestNeighbor(object):
             sqDis = sq.sum(axis=1)
             # 再开方，获得一个测试样本的欧氏距离
             dists[i, :] = sqDis ** 0.5
+            #######################################################################
+            #                         END OF YOUR CODE                            #
+            #######################################################################
         return dists
 
     def compute_distances_no_loops(self, X):
@@ -107,6 +124,18 @@ class KNearestNeighbor(object):
         num_test = X.shape[0]
         num_train = self.X_train.shape[0]
         dists = np.zeros((num_test, num_train))
+        #########################################################################
+        # TODO:                                                                 #
+        # Compute the l2 distance between all test points and all training      #
+        # points without using any explicit loops, and store the result in      #
+        # dists.                                                                #
+        #                                                                       #
+        # You should implement this function using only basic array operations; #
+        # in particular you should not use functions from scipy.                #
+        #                                                                       #
+        # HINT: Try to formulate the l2 distance using matrix multiplication    #
+        #       and two broadcast sums.                                         #
+        #########################################################################
         # 无参数表示全部相加，axis＝0表示按列相加，axis＝1表示按行的方向相加
         # 这里就是将矩阵压缩成一维，num_train列的矩阵，得到a^2的累加
         dists += np.sum(self.X_train ** 2, axis=1).reshape(1, num_train)
@@ -117,6 +146,9 @@ class KNearestNeighbor(object):
         # 开方后得到结果
         dists = np.sqrt(dists)
         # 原理是（a-b）^2=a^2+b^2-2ab
+        #########################################################################
+        #                         END OF YOUR CODE                              #
+        #########################################################################
         return dists
 
         '''
@@ -156,6 +188,13 @@ class KNearestNeighbor(object):
             # A list of length k storing the labels of the k nearest neighbors to
             # the ith test point.
             closest_y = []
+            #########################################################################
+            # TODO:                                                                 #
+            # Use the distance matrix to find the k nearest neighbors of the ith    #
+            # testing point, and use self.y_train to find the labels of these       #
+            # neighbors. Store these labels in closest_y.                           #
+            # Hint: Look up the function numpy.argsort.                             #
+            #########################################################################
             # 通过np.argsort进行排序，返回的是顺序的列表
             order = np.argsort(dists[i])
             # 列表切片，获取前K个
@@ -164,10 +203,20 @@ class KNearestNeighbor(object):
             for j in order:
                 closest_y.append(self.y_train[j])
             # print(closest_y)
+            #########################################################################
+            # TODO:                                                                 #
+            # Now that you have found the labels of the k nearest neighbors, you    #
+            # need to find the most common label in the list closest_y of labels.   #
+            # Store this label in y_pred[i]. Break ties by choosing the smaller     #
+            # label.                                                                #
+            #########################################################################
             # 定义一个全零的list刚好与类别数相同(10)
             l = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
             for o in closest_y:
                 l[o] = l[o] + 1  # 是那个类，那个类加一
             y_pred[i] = np.argsort(l)[9]  # 排序得到最大的数的位置即9
             # print(y_pred[i])
+            #########################################################################
+            #                           END OF YOUR CODE                            #
+            #########################################################################
         return y_pred
