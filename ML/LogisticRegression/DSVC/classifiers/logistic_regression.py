@@ -2,10 +2,10 @@ import numpy as np
 import random
 import math
 
-
 class LogisticRegression(object):
 
     def __init__(self):
+        # 初始化w以及one_vs_all的w
         self.w = None
         self.one_vs_all_w = None
 
@@ -32,11 +32,14 @@ class LogisticRegression(object):
         # TODO:                                                                 #
         # calculate the loss and the derivative                                 #
         #########################################################################
+        #训练样本数
         m = X_batch.shape[0]
+        #求Z
         z = X_batch.dot(self.w)
         # log log10  log2  log1p
         # ln  底数10  底数2  log（x+1）
         J = (-y_batch.T.dot(np.log(self.sigmoid(z))) - (1 - y_batch.T).dot(np.log(1 - self.sigmoid(z)))) / m
+        #计算偏导，梯度值
         grad = np.dot(X_batch.T, self.sigmoid(z) - y_batch) / m
         #########################################################################
         #                       END OF YOUR CODE                                #
@@ -81,6 +84,7 @@ class LogisticRegression(object):
             # Hint: Use np.random.choice to generate indices. Sampling with         #
             # replacement is faster than sampling without replacement.              #
             #########################################################################
+            #创建从0到num_train中随机选择batch_size大小的list
             index = np.random.choice(num_train, size=batch_size, replace=verbose)
             X_batch = X[index]
             y_batch = y[index]
@@ -97,6 +101,7 @@ class LogisticRegression(object):
             # TODO:                                                                 #
             # Update the weights using the gradient and the learning rate.          #
             #########################################################################
+            #计算w的梯度下降的值
             self.w = self.w - learning_rate * grad
             #########################################################################
             #                       END OF YOUR CODE                                #
@@ -126,15 +131,18 @@ class LogisticRegression(object):
         # TODO:                                                                   #
         # Implement this method. Store the predicted labels in y_pred.            #
         ###########################################################################
+        #计算预测值h
         h = self.sigmoid(X.dot(self.w))
         for i in range(X.shape[0]):
             if h[i] > 0.5:
+                #当预测值>0.5说明为正例，将y_pred赋值为1
                 y_pred[i] = 1
         ###########################################################################
         #                           END OF YOUR CODE                              #
         ###########################################################################
         return y_pred
 
+    #模仿之前的loss改为one_vs_all版本
     def loss_one_vs_all(self, X_batch, y_batch, i):
         """
         Compute the loss function and its derivative.
@@ -156,7 +164,9 @@ class LogisticRegression(object):
         return J, grad
 
     def predict_one_vs_all(self, X):
+        #计算出所有10类的预测值
         h_one_vs_all = self.sigmoid(X.dot(self.one_vs_all_w.T))
+        #返回每一个样本概率最大的数字
         y_pred = np.argmax(h_one_vs_all, axis=1)
         return y_pred
 
@@ -175,7 +185,7 @@ class LogisticRegression(object):
 
         """
         num_train, dim = X.shape
-        # 初始化one_vs_all
+        # 初始化one_vs_all_w (10*dim）
         if self.one_vs_all_w is None:
             self.one_vs_all_w = 0.001 * np.random.randn(10, dim)
 
@@ -183,16 +193,20 @@ class LogisticRegression(object):
             for it in range(num_iters):
                 X_batch = None
                 y_batch = None
+                #同上
                 index = np.random.choice(num_train, size=batch_size, replace=verbose)
                 X_batch = X[index]
                 y_batch = y[index]
+                #建立一个lables用来二分y_batch,全1，先看做全为正类
                 lables = np.ones(batch_size)
                 for i in range(batch_size):
                     if y_batch[i] != class_i:
+                        #如果和当前类不同，赋值为0，即负类
                         lables[i] = 0
                 # evaluate loss and gradient
                 loss, grad = self.loss_one_vs_all(X_batch, lables, class_i)
                 # perform parameter update
+                #同理，对每一个类参数进行梯度下降
                 self.one_vs_all_w[class_i] = self.one_vs_all_w[class_i] - learning_rate * grad
                 if verbose and it % 300 == 0:
                     print('class : %d | iteration %d / %d: loss %f' % (class_i, it, num_iters, loss))
