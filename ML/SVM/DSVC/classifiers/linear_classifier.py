@@ -1,5 +1,6 @@
 import numpy as np
-from ML.SVM.DSVC.classifiers.linear_svm import *
+
+from DSVC.classifiers.linear_svm import *
 
 
 class LinearClassifier(object):

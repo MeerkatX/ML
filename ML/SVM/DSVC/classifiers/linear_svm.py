@@ -26,8 +26,9 @@ def svm_loss_naive(W, X, y, reg):
     num_classes = W.shape[1]
     num_train = X.shape[0]
     loss = 0.0
+    # 对每一个样例进行计算
     for i in range(num_train):
-        scores = X[i].dot(W)
+        scores = X[i].dot(W)  # 计算第i个样例的10个类的预测值(10,)
         correct_class_score = scores[y[i]]
         for j in range(num_classes):
             if j == y[i]:
@@ -35,13 +36,17 @@ def svm_loss_naive(W, X, y, reg):
             margin = scores[j] - correct_class_score + 1  # note delta = 1
             if margin > 0:
                 loss += margin
+                dW[:, j] = dW[:, j] + X[i]
+                dW[:, y[i]] = dW[:, y[i]] - X[i]
 
     # Right now the loss is a sum over all training examples, but we want it
     # to be an average instead so we divide by num_train.
     loss /= num_train
+    dW /= num_train
 
     # Add regularization to the loss.
-    loss += reg * np.sum(W * W)
+    loss += reg * np.sum(W * W)  #
+    dW += reg * W
 
     #############################################################################
     # TODO:                                                                     #
@@ -51,11 +56,6 @@ def svm_loss_naive(W, X, y, reg):
     # loss is being computed. As a result you may need to modify some of the    #
     # code above to compute the gradient.                                       #
     #############################################################################
-
-    '''
-    计算损失函数的梯度并将其存储dW。相反，首先计算损失然后计算导数，在计算损失的同时计算导数可能更简单。
-    因此，您可能需要修改上面的一些代码来计算渐变
-    '''
 
     return loss, dW
 
@@ -68,13 +68,23 @@ def svm_loss_vectorized(W, X, y, reg):
     """
     loss = 0.0
     dW = np.zeros(W.shape)  # initialize the gradient as zero
-
+    num_classes = W.shape[1]
+    num_train = X.shape[0]
     #############################################################################
     # TODO:                                                                     #
     # Implement a vectorized version of the structured SVM loss, storing the    #
     # result in loss.                                                           #
     #############################################################################
-    pass
+
+    scores = X.dot(W)  # (500,10)
+    # range(num_train)与0:num_train的不同，是对每一行的操作和对整个的操作
+    correct_class_scores = scores[range(num_train), list(y)].reshape(-1, 1)
+    # 即hinge函数
+    margins = np.maximum(0, scores - correct_class_scores + 1)
+    margins[range(X.shape[0]), list(y)] = 0
+    loss = float(np.sum(margins) / num_train + reg * np.sum(W * W))
+
+
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################
@@ -88,7 +98,13 @@ def svm_loss_vectorized(W, X, y, reg):
     # to reuse some of the intermediate values that you used to compute the     #
     # loss.                                                                     #
     #############################################################################
-    pass
+    temp = np.zeros((num_train, num_classes))
+    temp[margins > 0] = 1
+    temp[range(num_train), list(y)] = 0
+    temp[range(num_train), list(y)] = -np.sum(temp, axis=1)
+
+    dW = X.T.dot(temp)
+    dW = dW / num_train + reg * W
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################
