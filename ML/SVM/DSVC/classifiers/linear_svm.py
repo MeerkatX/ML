@@ -81,7 +81,8 @@ def svm_loss_vectorized(W, X, y, reg):
     correct_class_scores = scores[range(num_train), list(y)].reshape(-1, 1)
     # 即hinge函数
     margins = np.maximum(0, scores - correct_class_scores + 1)
-    margins[range(X.shape[0]), list(y)] = 0
+    # j=yi的情况
+    margins[range(num_train), list(y)] = 0
     loss = float(np.sum(margins) / num_train + reg * np.sum(W * W))
 
 
@@ -99,11 +100,13 @@ def svm_loss_vectorized(W, X, y, reg):
     # loss.                                                                     #
     #############################################################################
     temp = np.zeros((num_train, num_classes))
+    #普通情况 >0 的 dW=xi1
     temp[margins > 0] = 1
+    #j=yi的特殊情况 -(...)xi1
     temp[range(num_train), list(y)] = 0
     temp[range(num_train), list(y)] = -np.sum(temp, axis=1)
-
     dW = X.T.dot(temp)
+    #计算出dW
     dW = dW / num_train + reg * W
     #############################################################################
     #                             END OF YOUR CODE                              #
