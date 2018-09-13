@@ -79,8 +79,8 @@ class TwoLayerNet(object):
         # Store the result in the scores variable, which should be an array of      #
         # shape (N, C).                                                             #
         #############################################################################
-        H1 = self.ReLU(X.dot(W1) + b1)
-        scores = H1.dot(W2) + b2  # N,C
+        H1 = self.ReLU(X.dot(W1) + b1)  # (N,D) dot (D,H) = (N,H)
+        scores = H1.dot(W2) + b2  # (N,H) dot (H,C) = (N,C)
         #############################################################################
         #                              END OF YOUR CODE                             #
         #############################################################################
@@ -120,13 +120,21 @@ class TwoLayerNet(object):
         # and biases. Store the results in the grads dictionary. For example,       #
         # grads['W1'] should store the gradient on W1, and be a matrix of same size #
         #############################################################################
-
-        """
-        dScores=(-1/N)*(X.T.dot(P[np.arange(N),y]))
-        dW2=H1
-        grads['W2']=dScores*dW2
-        grads['W1']=grads['W2']
-        """
+        # 交叉熵求输出层对scores的偏导
+        temp = np.zeros((N, len(set(y))))
+        temp[np.arange(N), y] = 1
+        temp = temp - P
+        dScores = (-1 / N) * temp  # (N,C)
+        # dscores/dw2=H1 dscores/db2=1
+        grads['W2'] = H1.T.dot(dScores)  # (H,N) dot (N,C) = (H,C)
+        grads['b2'] = np.sum(dScores, axis=0)
+        grads['W2'] += reg * W2
+        # dscores/dH1=W2 dH1/dW1=X
+        dH1 = dScores.dot(W2.T)
+        dH1[H1 == 0] = 0
+        grads['W1'] = X.T.dot(dH1)  # (D,H)
+        grads['b1'] = np.sum(dH1, axis=0)
+        grads['W1'] += reg * W1
         #############################################################################
         #                              END OF YOUR CODE                             #
         #############################################################################
@@ -170,7 +178,7 @@ class TwoLayerNet(object):
             # TODO: Create a random minibatch of training data and labels, storing  #
             # them in X_batch and y_batch respectively.                             #
             #########################################################################
-            index = np.random.choice(num_train, size=batch_size, replace=verbose)
+            index = np.random.choice(num_train, size=batch_size)
             X_batch = X[index]
             y_batch = y[index]
             #########################################################################
