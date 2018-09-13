@@ -176,7 +176,20 @@ class FullyConnectedNet(object):
         # beta2, etc. Scale parameters should be initialized to one and shift      #
         # parameters should be initialized to zero.                                #
         ############################################################################
-        pass
+        for i in range(self.num_layers):
+            if i is 0:
+                # 第一层
+                in_dim, out_dim = input_dim, hidden_dims[i]
+            elif i is len(hidden_dims):
+                # 最后一层
+                in_dim, out_dim = hidden_dims[i - 1], num_classes
+            else:
+                # 中间层
+                in_dim, out_dim = hidden_dims[i - 1], hidden_dims[i]
+            self.params['W{}'.format(i + 1)] = weight_scale * np.random.randn(in_dim, out_dim)
+            self.params['b{}'.format(i + 1)] = np.zeros(out_dim)
+        # print(self.params)
+
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -233,7 +246,16 @@ class FullyConnectedNet(object):
         # self.bn_params[1] to the forward pass for the second batch normalization #
         # layer, etc.                                                              #
         ############################################################################
-        pass
+        H_list, H_cache = [], []
+        H_list.append(X)
+        for i in range(self.num_layers):
+            H_temp, temp_cache = affine_relu_forward(H_list[i], self.params['W{}'.format(i + 1)],
+                                                     self.params['b{}'.format(i + 1)])
+            H_list.append(H_temp)
+            H_cache.append(temp_cache)
+        # print(len(H_list),len(H_cache),self.num_layers)
+        scores, cache_scores = affine_forward(H_list[self.num_layers - 1], self.params['W{}'.format(self.num_layers)],
+                                              self.params['b{}'.format(self.num_layers)])
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -256,7 +278,23 @@ class FullyConnectedNet(object):
         # automated tests, make sure that your L2 regularization includes a factor #
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
-        pass
+        # 计算最后一层的loss和dScores
+        loss, dScores = softmax_loss(scores, y)
+        # 所有的参数的平方和
+        W_2 = 0
+        for i in range(self.num_layers):
+            W_2 += np.sum(self.params['W{}'.format(i + 1)] ** 2)
+        # 计算L2 regularization
+        loss += 0.5 * self.reg * W_2
+        # 计算最后线性层的
+        dX_old, grads['W{}'.format(self.num_layers)], grads['b{}'.format(self.num_layers)] = affine_backward(dScores,
+                                                                                                             cache_scores)
+        grads['W{}'.format(self.num_layers)] += self.reg * self.params['W{}'.format(self.num_layers)]
+        # 计算之前的L-1的线性+ReLU层
+        for i in range(self.num_layers - 1, 0, -1):
+            dX_new, grads['W{}'.format(i)], grads['b{}'.format(i)] = affine_relu_backward(dX_old, H_cache[i - 1])
+            grads['W{}'.format(i)] += self.reg * self.params['W{}'.format(i)]
+            dX_old = dX_new
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
