@@ -247,10 +247,12 @@ class FullyConnectedNet(object):
         # layer, etc.                                                              #
         ############################################################################
         H_list, H_cache = [], []
+        # 建两个列表用来保存每一层的输入，从X的输入开始，以及每一层的cache
         H_list.append(X)
         for i in range(self.num_layers):
             H_temp, temp_cache = affine_relu_forward(H_list[i], self.params['W{}'.format(i + 1)],
                                                      self.params['b{}'.format(i + 1)])
+            # 添加入列表
             H_list.append(H_temp)
             H_cache.append(temp_cache)
         # print(len(H_list),len(H_cache),self.num_layers)

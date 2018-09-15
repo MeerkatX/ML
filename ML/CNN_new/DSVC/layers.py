@@ -117,7 +117,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
 
     During training the sample mean and (uncorrected) sample variance are
     computed from minibatch statistics and used to normalize the incoming data.
-    During training we also keep an exponentially decaying running mean of the
+    During training we also keep an exponentially(成倍) decaying running mean of the
     mean and variance of each feature, and these averages are used to normalize
     data at test-time.
 
