@@ -10,5 +10,4 @@
 - NeuralNetworks
 -- 两层全连接网络，ReLU，softmax
 - DL
--- RMSProp and Adam，SGD+Momentum，Fully-Connected Neural Nets
--- BatchNormalization，Dropout，CNN
+-- RMSProp and Adam，SGD+Momentum，Fully-Connected Neural Nets， BatchNormalization，Dropout，CNN
