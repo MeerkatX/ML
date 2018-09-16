@@ -373,9 +373,9 @@ def conv_forward_naive(x, w, b, conv_param):
     """
     A naive implementation of the forward pass for a convolutional layer.
 
-    The input consists of N data points, each with C channels, height H and
-    width W. We convolve each input with F different filters, where each filter
-    spans all C channels and has height HH and width HH.
+    The input consists of N data points, each with C channels(通道数), height H and
+    width W. We convolve each input with F different filters(F个不同的卷积核), where each filter
+    spans all C channels(与输入数据相同的卷积核) and has height HH and width HH(卷积核的高和宽).
 
     Input:
     - x: Input data of shape (N, C, H, W)
@@ -384,7 +384,8 @@ def conv_forward_naive(x, w, b, conv_param):
     - conv_param: A dictionary with the following keys:
       - 'stride': The number of pixels between adjacent receptive fields in the
         horizontal and vertical directions.
-      - 'pad': The number of pixels that will be used to zero-pad the input.
+      - 'pad': The number of pixels that will be used to zero-pad(填充0) the input.
+        (这里是给输入填充0)
 
     Returns a tuple of:
     - out: Output data, of shape (N, F, H', W') where H' and W' are given by
@@ -397,7 +398,35 @@ def conv_forward_naive(x, w, b, conv_param):
     # TODO: Implement the convolutional forward pass.                         #
     # Hint: you can use the function np.pad for padding.                      #
     ###########################################################################
-    pass
+    F, C, HH, WW = w.shape
+    N, C, H, W = x.shape
+    # stride是卷积时步长
+    stride, pad = conv_param['stride'], conv_param['pad']
+
+    # x是(N, C, H, W)要是填充0的话应该填充在H,W上
+    # constant连续一样的值填充，有关于其填充值的参数
+    # constant_values=（x, y）时前面用x填充，后面用y填充。缺参数是为0000
+    x_padding = np.pad(x, ((0, 0), (0, 0), (pad, pad), (pad, pad)), 'constant')
+
+    # 卷积步长得到的out shape 公式为 (n+2*p-f)/stride+1
+    # 具体理解为以将卷积核右侧为开头，还剩下H+2*p-HH个像素，这个像素包含多少个stride就能向右移几步，最后加上一开始的一个
+    H_ = 1 + (int)((H + 2 * pad - HH) / stride)
+    W_ = 1 + (int)((W + 2 * pad - WW) / stride)
+
+    out = np.zeros((N, F, H_, W_))
+    # 对每个图像N
+    for n in range(N):
+        # 对每个卷积核
+        for f in range(F):
+            # 计算得到最后out的高，说明能得到H_个数
+            for h in range(H_):
+                # 同理
+                for wi in range(W_):
+                    # 计算该卷积的部分，卷积是A,B内积，即a1b1+a2b2+a3b3+...+anbn
+                    # h * stride(开头部分): HH + h * stride(卷积核的高度), wi * stride(宽度的开头位置): WW + wi * stride(卷积核宽度)
+                    out[n, f, h, wi] = np.sum(
+                        x_padding[n, :, h * stride:HH + h * stride, wi * stride:WW + wi * stride] * w[f]) + b[f]
+
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################

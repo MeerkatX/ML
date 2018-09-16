@@ -251,13 +251,16 @@ class FullyConnectedNet(object):
         H_list, H_cache = [], []
         # 建两个列表用来保存每一层的输入，从X的输入开始，以及每一层的cache
         H_list.append(X)
+        # 初始化dropout列表保存cache
         if self.use_dropout is True:
             dropout_cache_list = []
         for i in range(self.num_layers - 1):
             if self.use_batchnorm is False:
+                # 不加入bn 线性 - relu
                 H_temp, temp_cache = affine_relu_forward(H_list[i], self.params['W{}'.format(i + 1)],
                                                          self.params['b{}'.format(i + 1)])
             else:
+                # 加入bn 线性 - bn - relu
                 H_affine, affine_cache = affine_forward(H_list[i], self.params['W{}'.format(i + 1)],
                                                         self.params['b{}'.format(i + 1)])
 
@@ -265,6 +268,7 @@ class FullyConnectedNet(object):
                                                      self.params['beta{}'.format(i + 1)], self.bn_params[i])
                 H_temp, relu_cache = relu_forward(H_norm)
                 temp_cache = (affine_cache, bn_cache, relu_cache)
+            # 加入dropout层 线性 - (bn) - relu - dropout
             if self.use_dropout is True:
                 H_temp, dropout_cache = dropout_forward(H_temp, self.dropout_param)
                 dropout_cache_list.append(dropout_cache)
@@ -272,6 +276,7 @@ class FullyConnectedNet(object):
             H_list.append(H_temp)
             H_cache.append(temp_cache)
         # print(len(H_list),len(H_cache),self.num_layers)
+        # 计算最后的线性层
         scores, cache_scores = affine_forward(H_list[self.num_layers - 1], self.params['W{}'.format(self.num_layers)],
                                               self.params['b{}'.format(self.num_layers)])
         ############################################################################
@@ -310,17 +315,21 @@ class FullyConnectedNet(object):
                                                                                                              cache_scores)
         grads['W{}'.format(self.num_layers)] += self.reg * self.params['W{}'.format(self.num_layers)]
 
-        # 计算之前的L-1的线性+ReLU层
+        # 计算之前的L-1各层
         for i in range(self.num_layers - 1, 0, -1):
+            # dropout - relu - (bn) - 线性
             if self.use_dropout is True:
                 dX_old = dropout_backward(dX_old, dropout_cache_list[i - 1])
             if self.use_batchnorm is False:
+                # 无batchnorm relu - 线性
                 dX_new, grads['W{}'.format(i)], grads['b{}'.format(i)] = affine_relu_backward(dX_old, H_cache[i - 1])
             else:
+                # relu - batchnorm - 线性
                 affine_cache, bn_cache, relu_cache = H_cache[i - 1]
                 dX_relu = relu_backward(dX_old, relu_cache)
                 dX_bn, grads['gamma{}'.format(i)], grads['beta{}'.format(i)] = batchnorm_backward(dX_relu, bn_cache)
                 dX_new, grads['W{}'.format(i)], grads['b{}'.format(i)] = affine_backward(dX_bn, affine_cache)
+            # L2正则化
             grads['W{}'.format(i)] += self.reg * self.params['W{}'.format(i)]
             dX_old = dX_new
         ############################################################################
