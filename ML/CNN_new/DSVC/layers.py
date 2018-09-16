@@ -115,10 +115,10 @@ def batchnorm_forward(x, gamma, beta, bn_param):
     """
     Forward pass for batch normalization.
 
-    During training the sample mean and (uncorrected) sample variance are
+    During training the sample mean and (uncorrected) sample variance(方差) are
     computed from minibatch statistics and used to normalize the incoming data.
     During training we also keep an exponentially(成倍) decaying running mean of the
-    mean and variance of each feature, and these averages are used to normalize
+    mean and variance of each feature, and these averages(均值) are used to normalize
     data at test-time.
 
     At each timestep we update the running averages for mean and variance using
@@ -166,6 +166,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # shift the normalized data using gamma and beta.                     #
         #                                                                     #
         # You should store the output in the variable out. Any intermediates  #
+        # (中间)                                                               #
         # that you need for the backward pass should be stored in the cache   #
         # variable.                                                           #
         #                                                                     #
@@ -174,7 +175,15 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # variance, storing your result in the running_mean and running_var   #
         # variables.                                                          #
         #######################################################################
-        pass
+        # the mean of every dimension
+        x_mean = np.mean(x, axis=0)
+        x_var = np.var(x, axis=0)
+        running_mean = momentum * running_mean + (1 - momentum) * x_mean
+        running_var = momentum * running_var + (1 - momentum) * x_var
+        x_norm = (x - x_mean) / (np.sqrt(x_var + eps))
+        out = x_norm * gamma + beta
+        # gamma和beta的shape是(D,) x_norm*gamma+beta=(N,D)*(N,D)+(N,D)不是点乘只是做了放缩和平移
+        cache = (x, gamma, beta, x_norm, x_mean, x_var, eps)
         #######################################################################
         #                           END OF YOUR CODE                          #
         #######################################################################
@@ -185,7 +194,8 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # then scale and shift the normalized data using gamma and beta.      #
         # Store the result in the out variable.                               #
         #######################################################################
-        pass
+        x = (x - running_mean) / (np.sqrt(running_var + eps))
+        out = x * gamma + beta
         #######################################################################
         #                          END OF YOUR CODE                           #
         #######################################################################
@@ -204,7 +214,7 @@ def batchnorm_backward(dout, cache):
     Backward pass for batch normalization.
 
     For this implementation, you should write out a computation graph for
-    batch normalization on paper and propagate gradients backward through
+    batch normalization on paper and propagate(传播) gradients backward through
     intermediate nodes.
 
     Inputs:
@@ -221,7 +231,17 @@ def batchnorm_backward(dout, cache):
     # TODO: Implement the backward pass for batch normalization. Store the    #
     # results in the dx, dgamma, and dbeta variables.                         #
     ###########################################################################
-    pass
+    x, gamma, beta, x_norm, x_mean, x_var, eps = cache
+    # dout/dgamma  X_norm dims (N,D)
+    dgamma = np.sum(dout * x_norm, axis=0)
+    dbeta = np.sum(dout, axis=0)
+    # 都涉及到Batch中的N个样本的累加，因为N个样本的yi 对β γ 都有影响。
+    # For our final loss evaluation, we sum the gradient of all samples in the batch.
+    dx_norm = dout * gamma
+    dx_var = -0.5 * np.sum((dx_norm * (x - x_mean)), axis=0) * ((x_var + eps) ** -1.5)
+    dx_mean = np.sum(-dx_norm / np.sqrt(x_var + eps) + dx_var * (-2 * np.sum(x - x_mean)) / x.shape[0], axis=0)
+    # 将x_norm,x_var,x_mean都看做变量，分别求偏导，因为都是x的函数，然后再对每一个求关于x的导，最后加在一起即可
+    dx = dx_norm / np.sqrt(x_var + eps) + (dx_var * 2 * (x - x_mean)) / x.shape[0] + dx_mean / x.shape[0]
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -251,7 +271,17 @@ def batchnorm_backward_alt(dout, cache):
     # should be able to compute gradients with respect to the inputs in a     #
     # single statement; our implementation fits on a single 80-character line.#
     ###########################################################################
-    pass
+    x, gamma, beta, x_norm, x_mean, x_var, eps = cache
+    # dout/dgamma  X_norm dims (N,D)
+    dgamma = np.sum(dout * x_norm, axis=0)
+    dbeta = np.sum(dout, axis=0)
+    # 都涉及到Batch中的N个样本的累加，因为N个样本的yi 对β γ 都有影响。
+    # For our final loss evaluation, we sum the gradient of all samples in the batch.
+    dx_norm = dout * gamma
+    dx_var = -0.5 * np.sum((dx_norm * (x - x_mean)), axis=0) * ((x_var + eps) ** -1.5)
+    dx_mean = np.sum(-dx_norm / np.sqrt(x_var + eps) + dx_var * (-2 * np.sum(x - x_mean)) / x.shape[0], axis=0)
+    # 将x_norm,x_var,x_mean都看做变量，分别求偏导，因为都是x的函数，然后再对每一个求关于x的导，最后加在一起即可
+    dx = dx_norm / np.sqrt(x_var + eps) + (dx_var * 2 * (x - x_mean)) / x.shape[0] + dx_mean / x.shape[0]
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################

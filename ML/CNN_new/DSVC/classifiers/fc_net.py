@@ -188,8 +188,10 @@ class FullyConnectedNet(object):
                 in_dim, out_dim = hidden_dims[i - 1], hidden_dims[i]
             self.params['W{}'.format(i + 1)] = weight_scale * np.random.randn(in_dim, out_dim)
             self.params['b{}'.format(i + 1)] = np.zeros(out_dim)
+            if self.use_batchnorm is True and i < len(hidden_dims):
+                self.params['gamma{}'.format(i + 1)] = np.ones(out_dim)
+                self.params['beta{}'.format(i + 1)] = np.zeros(out_dim)
         # print(self.params)
-
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -249,9 +251,18 @@ class FullyConnectedNet(object):
         H_list, H_cache = [], []
         # 建两个列表用来保存每一层的输入，从X的输入开始，以及每一层的cache
         H_list.append(X)
-        for i in range(self.num_layers):
-            H_temp, temp_cache = affine_relu_forward(H_list[i], self.params['W{}'.format(i + 1)],
-                                                     self.params['b{}'.format(i + 1)])
+        for i in range(self.num_layers - 1):
+            if self.use_batchnorm is False:
+                H_temp, temp_cache = affine_relu_forward(H_list[i], self.params['W{}'.format(i + 1)],
+                                                         self.params['b{}'.format(i + 1)])
+            else:
+                H_affine, affine_cache = affine_forward(H_list[i], self.params['W{}'.format(i + 1)],
+                                                        self.params['b{}'.format(i + 1)])
+
+                H_norm, bn_cache = batchnorm_forward(H_affine, self.params['gamma{}'.format(i + 1)],
+                                                     self.params['beta{}'.format(i + 1)], self.bn_params[i])
+                H_temp, relu_cache = relu_forward(H_norm)
+                temp_cache = (affine_cache, bn_cache, relu_cache)
             # 添加入列表
             H_list.append(H_temp)
             H_cache.append(temp_cache)
@@ -294,7 +305,13 @@ class FullyConnectedNet(object):
         grads['W{}'.format(self.num_layers)] += self.reg * self.params['W{}'.format(self.num_layers)]
         # 计算之前的L-1的线性+ReLU层
         for i in range(self.num_layers - 1, 0, -1):
-            dX_new, grads['W{}'.format(i)], grads['b{}'.format(i)] = affine_relu_backward(dX_old, H_cache[i - 1])
+            if self.use_batchnorm is False:
+                dX_new, grads['W{}'.format(i)], grads['b{}'.format(i)] = affine_relu_backward(dX_old, H_cache[i - 1])
+            else:
+                affine_cache, bn_cache, relu_cache = H_cache[i - 1]
+                dX_relu = relu_backward(dX_old, relu_cache)
+                dX_bn, grads['gamma{}'.format(i)], grads['beta{}'.format(i)] = batchnorm_backward(dX_relu, bn_cache)
+                dX_new, grads['W{}'.format(i)], grads['b{}'.format(i)] = affine_backward(dX_bn, affine_cache)
             grads['W{}'.format(i)] += self.reg * self.params['W{}'.format(i)]
             dX_old = dX_new
         ############################################################################
