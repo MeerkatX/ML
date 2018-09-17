@@ -410,8 +410,8 @@ def conv_forward_naive(x, w, b, conv_param):
 
     # 卷积步长得到的out shape 公式为 (n+2*p-f)/stride+1
     # 具体理解为以将卷积核右侧为开头，还剩下H+2*p-HH个像素，这个像素包含多少个stride就能向右移几步，最后加上一开始的一个
-    H_ = 1 + (int)((H + 2 * pad - HH) / stride)
-    W_ = 1 + (int)((W + 2 * pad - WW) / stride)
+    H_ = 1 + (H + 2 * pad - HH) // stride
+    W_ = 1 + (W + 2 * pad - WW) // stride
 
     out = np.zeros((N, F, H_, W_))
     # 对每个图像N
@@ -447,11 +447,37 @@ def conv_backward_naive(dout, cache):
     - dw: Gradient with respect to w
     - db: Gradient with respect to b
     """
+    # out: Output data, of shape (N, F, H', W')
     dx, dw, db = None, None, None
     ###########################################################################
     # TODO: Implement the convolutional backward pass.                        #
     ###########################################################################
-    pass
+    x, w, b, conv_param = cache
+    stride, pad = conv_param['stride'], conv_param['pad']
+    _, _, HH, WW = w.shape
+    N, F, H_, W_ = dout.shape
+
+    x_padding = np.pad(x, ((0, 0), (0, 0), (pad, pad), (pad, pad)), 'constant')
+    dw = np.zeros(w.shape)
+    db = np.zeros(b.shape)
+    dx_padding = np.zeros(x_padding.shape)
+
+    for n in range(N):
+        # 对每个卷积核
+        for f in range(F):
+            # 计算得到最后out的高，说明能得到H_个数
+            for h in range(H_):
+                # 同理
+                for wi in range(W_):
+                    # dw=dout * x
+                    dw[f] += dout[n][f][h][wi] * x_padding[n, :, h * stride:HH + h * stride,
+                                                 wi * stride:WW + wi * stride]
+                    # db=dout*1
+                    db[f] += dout[n][f][h][wi]
+                    # dx=dout*w
+                    dx_padding[n, :, h * stride:HH + h * stride, wi * stride:WW + wi * stride] += dout[n][f][h][wi] * w[
+                        f]
+    dx = dx_padding[:, :, pad:-pad, pad:-pad]
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -477,7 +503,17 @@ def max_pool_forward_naive(x, pool_param):
     ###########################################################################
     # TODO: Implement the max pooling forward pass                            #
     ###########################################################################
-    pass
+    pool_height, pool_width, stride = pool_param['pool_height'], pool_param['pool_width'], pool_param['stride']
+    N, C, H, W = x.shape
+    H_ = 1 + (H - pool_height) // stride
+    W_ = 1 + (W - pool_width) // stride
+    out = np.zeros((N, C, H_, W_))
+    for n in range(N):
+        for c in range(C):
+            for h in range(H_):
+                for w in range(W_):
+                    out[n][c][h][w] = np.max(
+                        x[n, c, h * stride:h * stride + pool_height, w * stride:w * stride + pool_width])
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -500,7 +536,17 @@ def max_pool_backward_naive(dout, cache):
     ###########################################################################
     # TODO: Implement the max pooling backward pass                           #
     ###########################################################################
-    pass
+    x, pool_param = cache
+    pool_height, pool_width, stride = pool_param['pool_height'], pool_param['pool_width'], pool_param['stride']
+    N, C, H, W = x.shape
+    H_ = 1 + (H - pool_height) // stride
+    W_ = 1 + (W - pool_width) // stride
+    out = np.zeros((N, C, H_, W_))
+    for n in range(N):
+        for c in range(C):
+            for h in range(H_):
+                for w in range(W_):
+                    pass
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
