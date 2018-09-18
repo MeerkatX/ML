@@ -508,12 +508,18 @@ def max_pool_forward_naive(x, pool_param):
     H_ = 1 + (H - pool_height) // stride
     W_ = 1 + (W - pool_width) // stride
     out = np.zeros((N, C, H_, W_))
+    '''
     for n in range(N):
         for c in range(C):
             for h in range(H_):
                 for w in range(W_):
                     out[n][c][h][w] = np.max(
                         x[n, c, h * stride:h * stride + pool_height, w * stride:w * stride + pool_width])
+    '''
+    for h in range(H_):
+        for w in range(W_):
+            out[:, :, h, w] = np.max(x[:, :, h * stride:h * stride + pool_height, w * stride:w * stride + pool_width],
+                                     axis=(2, 3))
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -541,12 +547,20 @@ def max_pool_backward_naive(dout, cache):
     N, C, H, W = x.shape
     H_ = 1 + (H - pool_height) // stride
     W_ = 1 + (W - pool_width) // stride
-    out = np.zeros((N, C, H_, W_))
-    for n in range(N):
-        for c in range(C):
-            for h in range(H_):
-                for w in range(W_):
-                    pass
+    dx = np.zeros(x.shape)
+    for h in range(H_):
+        for w in range(W_):
+            # 记录所有N和C的局部的最大值
+            mask = np.max(x[:, :, h * stride:h * stride + pool_height, w * stride:w * stride + pool_width], axis=(2, 3))
+            # print(mask.shape) mask_shape为(N,C)
+            # 记录max在区域里的位置,如果等于最大值为true,如果不等于false,在矩阵乘法中自动转化为1,0
+            # 有关[:,:,None]的东西可以看这个网站https://stackoverflow.com/questions/37867354/in-numpy-what-does-selection-by-none-do
+            temp_binary_mask = x[:, :, h * stride:h * stride + pool_height, w * stride:w * stride + pool_width] == mask[
+                                                                                                                   :, :,
+                                                                                                                   None,
+                                                                                                                   None]
+            dx[:, :, h * stride:h * stride + pool_height,
+            w * stride:w * stride + pool_width] += temp_binary_mask * dout[:, :, h, w][:, :, None, None]
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
